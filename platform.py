@@ -28,7 +28,7 @@ from platformio.package.manager.tool import ToolPackageManager
 
 # Constants
 RETRY_LIMIT = 3
-SUBPROCESS_TIMEOUT = 300
+SUBPROCESS_TIMEOUT = 900
 DEFAULT_DEBUG_SPEED = "5000"
 DEFAULT_APP_OFFSET = "0x10000"
 tl_install_name = "tool-esp_install"
