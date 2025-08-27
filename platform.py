@@ -386,7 +386,6 @@ class Espressif32Platform(PlatformBase):
         cmd = [
             python_exe,
             idf_tools_path,
-            "--quiet",
             "--non-interactive",
             "--tools-json",
             tools_json_path,
@@ -396,11 +395,11 @@ class Espressif32Platform(PlatformBase):
         try:
             result = subprocess.run(
                 cmd,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
                 timeout=SUBPROCESS_TIMEOUT,
                 check=False
             )
+
+            print(result)
 
             if result.returncode != 0:
                 logger.error("idf_tools.py installation failed")
