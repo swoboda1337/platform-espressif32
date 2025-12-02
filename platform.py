@@ -418,7 +418,6 @@ class Espressif32Platform(PlatformBase):
         cmd = [
             python_executable,
             idf_tools_path,
-            "--quiet",
             "--non-interactive",
             "--tools-json",
             tools_json_path,
