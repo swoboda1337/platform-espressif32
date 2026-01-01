@@ -250,54 +250,51 @@ def install_python_deps(python_exe, external_uv_executable):
             # Use external uv to install uv into the penv
             try:
                 result = subprocess.run(
-                    [external_uv_executable, "pip", "install", "uv>=0.1.0", f"--python={python_exe}", "--quiet"],
-                    capture_output=True,
-                    text=True,
+                    [external_uv_executable, "pip", "install", "uv>=0.1.0", f"--python={python_exe}"],
                     timeout=300
                 )
                 if result.returncode != 0:
                     print(f"Error: uv installation via external uv failed with exit code {result.returncode}")
                     print(f"  External uv: {external_uv_executable}")
                     print(f"  Python executable: {python_exe}")
-                    if result.stdout:
-                        print(f"  stdout: {result.stdout.strip()}")
-                    if result.stderr:
-                        print(f"  stderr: {result.stderr.strip()}")
                     return False
             except subprocess.TimeoutExpired:
                 print("Error: uv installation timed out")
+                print(f"  External uv: {external_uv_executable}")
+                print(f"  Python executable: {python_exe}")
+                print(f"  Timeout: 300s")
                 return False
             except FileNotFoundError:
                 print(f"Error: External uv executable not found: {external_uv_executable}")
+                print(f"  Python executable: {python_exe}")
                 return False
             except Exception as e:
                 print(f"Error installing uv package manager into penv: {e}")
+                print(f"  External uv: {external_uv_executable}")
+                print(f"  Python executable: {python_exe}")
                 return False
         else:
             # No external uv available, use pip to install uv into penv
             try:
                 result = subprocess.run(
-                    [python_exe, "-m", "pip", "install", "uv>=0.1.0", "--quiet"],
-                    capture_output=True,
-                    text=True,
+                    [python_exe, "-m", "pip", "install", "uv>=0.1.0"],
                     timeout=300
                 )
                 if result.returncode != 0:
                     print(f"Error: uv installation via pip failed with exit code {result.returncode}")
                     print(f"  Python executable: {python_exe}")
-                    if result.stdout:
-                        print(f"  stdout: {result.stdout.strip()}")
-                    if result.stderr:
-                        print(f"  stderr: {result.stderr.strip()}")
                     return False
             except subprocess.TimeoutExpired:
                 print("Error: uv installation via pip timed out")
+                print(f"  Python executable: {python_exe}")
+                print(f"  Timeout: 300s")
                 return False
             except FileNotFoundError:
-                print("Error: Python executable not found")
+                print(f"Error: Python executable not found: {python_exe}")
                 return False
             except Exception as e:
                 print(f"Error installing uv package manager via pip: {e}")
+                print(f"  Python executable: {python_exe}")
                 return False
 
     
@@ -356,14 +353,12 @@ def install_python_deps(python_exe, external_uv_executable):
         cmd = [
             penv_uv_executable, "pip", "install",
             f"--python={python_exe}",
-            "--quiet", "--upgrade"
+            "--upgrade"
         ] + packages_list
 
         try:
             result = subprocess.run(
                 cmd,
-                capture_output=True,
-                text=True,
                 timeout=300
             )
             if result.returncode != 0:
@@ -371,19 +366,22 @@ def install_python_deps(python_exe, external_uv_executable):
                 print(f"  uv executable: {penv_uv_executable}")
                 print(f"  Python executable: {python_exe}")
                 print(f"  Packages: {packages_list}")
-                if result.stdout:
-                    print(f"  stdout: {result.stdout.strip()}")
-                if result.stderr:
-                    print(f"  stderr: {result.stderr.strip()}")
                 return False
         except subprocess.TimeoutExpired:
             print("Error: Python dependencies installation timed out")
+            print(f"  uv executable: {penv_uv_executable}")
+            print(f"  Python executable: {python_exe}")
+            print(f"  Packages: {packages_list}")
+            print(f"  Timeout: 300s")
             return False
         except FileNotFoundError:
-            print("Error: uv command not found")
+            print(f"Error: uv command not found: {penv_uv_executable}")
             return False
         except Exception as e:
             print(f"Error installing Python dependencies: {e}")
+            print(f"  uv executable: {penv_uv_executable}")
+            print(f"  Python executable: {python_exe}")
+            print(f"  Packages: {packages_list}")
             return False
     
     return True
