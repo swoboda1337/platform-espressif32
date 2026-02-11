@@ -233,27 +233,37 @@ def install_python_deps(python_exe, external_uv_executable):
     # Get the penv directory to locate uv within it
     penv_dir = os.path.dirname(os.path.dirname(python_exe))
     penv_uv_executable = get_executable_path(penv_dir, "uv")
-
-    # Determine which uv to use for pip operations
-    if external_uv_executable:
-        # Use external uv directly — no need to install uv into the penv
-        uv_for_pip = external_uv_executable
-    else:
-        # No external uv: ensure uv is installed inside the penv
-        uv_for_pip = penv_uv_executable
+    
+    # Check if uv is available in the penv
+    uv_in_penv_available = False
+    try:
+        result = subprocess.run(
+            [penv_uv_executable, "--version"],
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
+        uv_in_penv_available = result.returncode == 0
+    except (FileNotFoundError, subprocess.TimeoutExpired):
         uv_in_penv_available = False
-        try:
-            result = subprocess.run(
-                [penv_uv_executable, "--version"],
-                capture_output=True,
-                text=True,
-                timeout=10
-            )
-            uv_in_penv_available = result.returncode == 0
-        except (FileNotFoundError, subprocess.TimeoutExpired):
-            uv_in_penv_available = False
+    
+    # Install uv into penv if not available
+    if not uv_in_penv_available:
+        if external_uv_executable:
+            # Try external uv first to install uv into the penv
+            try:
+                subprocess.check_call(
+                    [external_uv_executable, "pip", "install", "uv>=0.1.0", f"--python={python_exe}", "--quiet"],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.STDOUT,
+                    timeout=300
+                )
+                uv_in_penv_available = True
+            except Exception:
+                pass
 
         if not uv_in_penv_available:
+            # Fallback to pip to install uv into penv
             try:
                 subprocess.check_call(
                     [python_exe, "-m", "pip", "install", "uv>=0.1.0", "--quiet"],
@@ -274,17 +284,17 @@ def install_python_deps(python_exe, external_uv_executable):
                 print(f"Error installing uv package manager via pip: {e}")
                 return False
 
-
+    
     def _get_installed_uv_packages():
         """
         Get list of installed packages in virtual env 'penv' using uv.
-
+        
         Returns:
             dict: Dictionary of installed packages with versions
         """
         result = {}
         try:
-            cmd = [uv_for_pip, "pip", "list", f"--python={python_exe}", "--format=json"]
+            cmd = [penv_uv_executable, "pip", "list", f"--python={python_exe}", "--format=json"]
             result_obj = subprocess.run(
                 cmd,
                 capture_output=True,
@@ -328,7 +338,7 @@ def install_python_deps(python_exe, external_uv_executable):
                 packages_list.append(f"{p}{spec}")
         
         cmd = [
-            uv_for_pip, "pip", "install",
+            penv_uv_executable, "pip", "install",
             f"--python={python_exe}",
             "--quiet", "--upgrade"
         ] + packages_list
@@ -476,7 +486,7 @@ def _setup_python_environment_core(env, platform, platformio_dir, should_install
     
     # Set executable paths from tools
     esptool_binary_path = get_executable_path(penv_dir, "esptool")
-    uv_executable = used_uv_executable or get_executable_path(penv_dir, "uv")
+    uv_executable = get_executable_path(penv_dir, "uv")
 
     # Install required Python dependencies for ESP32 platform
     if has_internet_connection() or github_actions:
