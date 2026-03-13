@@ -57,7 +57,7 @@
       "type": "framework",
       "optional": true,
       "owner": "pioarduino",
-      "version": "https://github.com/swoboda1337/esp-idf.git#release/v6.0-pioarduino"
+      "version": "https://github.com/swoboda1337/esp-idf.git#v6.0-rc1-pioarduino"
     },
     "toolchain-xtensa-esp-elf": {
       "type": "toolchain",
