@@ -57,21 +57,21 @@
       "type": "framework",
       "optional": true,
       "owner": "pioarduino",
-      "version": "https://github.com/pioarduino/esp-idf/releases/download/v5.5.3.1/esp-idf-v5.5.3.1.tar.xz"
+      "version": "https://github.com/swoboda1337/esp-idf.git#release/v6.0-pioarduino"
     },
     "toolchain-xtensa-esp-elf": {
       "type": "toolchain",
       "optional": true,
       "owner": "pioarduino",
-      "package-version": "14.2.0+20251107",
-      "version": "https://github.com/pioarduino/registry/releases/download/0.0.1/xtensa-esp-elf-14.2.0_20251107.zip"
+      "package-version": "15.2.0+20251204",
+      "version": "https://github.com/pioarduino/registry/releases/download/0.0.1/xtensa-esp-elf-15.2.0_20251204.zip"
     },
     "toolchain-riscv32-esp": {
       "type": "toolchain",
       "optional": true,
       "owner": "pioarduino",
-      "package-version": "14.2.0+20251107",
-      "version": "https://github.com/pioarduino/registry/releases/download/0.0.1/riscv32-esp-elf-14.2.0_20251107.zip"
+      "package-version": "15.2.0+20251204",
+      "version": "https://github.com/pioarduino/registry/releases/download/0.0.1/riscv32-esp-elf-15.2.0_20251204.zip"
     },
     "toolchain-esp32ulp": {
       "type": "toolchain",
