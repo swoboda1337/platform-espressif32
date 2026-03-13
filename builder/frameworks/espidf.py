@@ -1159,6 +1159,10 @@ def get_app_flags(app_config, default_config):
                 fragment = ccfragment.get("fragment", "").strip("\" ")
                 if not fragment or fragment.startswith("-D"):
                     continue
+                # Skip GCC response files (@file) introduced in IDF 6.0
+                # App flags get toolchain specs from the build environment
+                if fragment.startswith("@"):
+                    continue
                 flags[cg["language"]].extend(
                     click.parser.split_arg_string(fragment.strip())
                 )
@@ -1431,7 +1435,29 @@ def prepare_build_envs(config, default_env, debug_allowed=True):
         build_env = default_env.Clone()
         build_env.SetOption("implicit_cache", 1)
         for cc in compile_commands:
-            build_flags = cc.get("fragment", "").strip("\" ")
+            raw_fragment = cc.get("fragment", "")
+            # Handle GCC response files (@file) introduced in IDF 6.0
+            # Read the file contents and add flags individually instead of
+            # passing @file to GCC, which avoids shlex parsing issues
+            if raw_fragment.strip().startswith("@"):
+                import shlex
+                tokens = shlex.split(raw_fragment.strip())
+                extra_flags = []
+                for t in tokens:
+                    if t.startswith("@"):
+                        # Read the response file and add its flags
+                        resp_path = t[1:]
+                        if os.path.isfile(resp_path):
+                            with open(resp_path) as f:
+                                extra_flags.extend(shlex.split(f.read()))
+                    else:
+                        extra_flags.append(t)
+                if extra_flags:
+                    build_env.Append(CCFLAGS=extra_flags)
+                    if cg.get("language", "") == "ASM":
+                        build_env.Append(ASPPFLAGS=extra_flags)
+                continue
+            build_flags = raw_fragment.strip("\" ")
             if not build_flags.startswith("-D"):
                 if build_flags.startswith("-include") and ".." in build_flags:
                     source_index = cg.get("sourceIndexes")[0]
