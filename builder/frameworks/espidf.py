@@ -1156,12 +1156,26 @@ def get_app_flags(app_config, default_config):
         for cg in config["compileGroups"]:
             flags[cg["language"]] = []
             for ccfragment in cg["compileCommandFragments"]:
-                fragment = ccfragment.get("fragment", "").strip("\" ")
+                raw_fragment = ccfragment.get("fragment", "")
+                fragment = raw_fragment.strip("\" ")
                 if not fragment or fragment.startswith("-D"):
                     continue
-                # Skip GCC response files (@file) introduced in IDF 6.0
-                # App flags get toolchain specs from the build environment
+                # Handle GCC response files (@file) introduced in IDF 6.0
+                # Read the file contents and extract flags so they are
+                # included in the global build environment
                 if fragment.startswith("@"):
+                    import shlex
+                    tokens = shlex.split(raw_fragment.strip())
+                    for t in tokens:
+                        if t.startswith("@"):
+                            resp_path = t[1:]
+                            if os.path.isfile(resp_path):
+                                with open(resp_path) as f:
+                                    for rf in shlex.split(f.read()):
+                                        if not rf.startswith("-D"):
+                                            flags[cg["language"]].append(rf)
+                        elif not t.startswith("-D"):
+                            flags[cg["language"]].append(t)
                     continue
                 flags[cg["language"]].extend(
                     click.parser.split_arg_string(fragment.strip())
@@ -1452,10 +1466,10 @@ def prepare_build_envs(config, default_env, debug_allowed=True):
                                 extra_flags.extend(shlex.split(f.read()))
                     else:
                         extra_flags.append(t)
-                if extra_flags:
-                    build_env.Append(CCFLAGS=extra_flags)
-                    if cg.get("language", "") == "ASM":
-                        build_env.Append(ASPPFLAGS=extra_flags)
+                # Response file flags are already in the global env via
+                # get_app_flags; skip them here to avoid duplicates
+                # (duplicate -specs= causes GCC errors, duplicate
+                # -mlongcalls is harmless but wasteful)
                 continue
             build_flags = raw_fragment.strip("\" ")
             if not build_flags.startswith("-D"):
@@ -2390,6 +2404,17 @@ framework_components_map = get_components_map(
     [project_target_name, default_config_name],
 )
 
+project_config = target_configs.get(project_target_name, {})
+default_config = target_configs.get(default_config_name, {})
+project_defines = get_app_defines(project_config)
+project_flags = get_app_flags(project_config, default_config)
+link_args = extract_link_args(elf_config)
+
+# Merge compile flags (including response file contents like -mlongcalls
+# and -specs=picolibc.specs) into the global env BEFORE building
+# components so all compilations use the correct flags
+env.MergeFlags(project_flags)
+
 build_components(env, framework_components_map, PROJECT_DIR)
 
 if not elf_config:
@@ -2398,12 +2423,6 @@ if not elf_config:
 
 for component_config in framework_components_map.values():
     env.Depends(project_ld_script, component_config["lib"])
-
-project_config = target_configs.get(project_target_name, {})
-default_config = target_configs.get(default_config_name, {})
-project_defines = get_app_defines(project_config)
-project_flags = get_app_flags(project_config, default_config)
-link_args = extract_link_args(elf_config)
 app_includes = get_app_includes(elf_config)
 
 #
@@ -2518,7 +2537,7 @@ env.Depends("$BUILD_DIR/$PROGNAME$PROGSUFFIX", partition_table)
 #
 
 project_flags.update(link_args)
-env.MergeFlags(project_flags)
+env.MergeFlags(link_args)
 env.Prepend(
     CPPPATH=app_includes["plain_includes"],
     CPPDEFINES=project_defines,
