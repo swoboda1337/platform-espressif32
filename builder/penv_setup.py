@@ -291,7 +291,8 @@ def install_python_deps(python_exe, external_uv_executable, uv_cache_dir=None):
         except Exception:
             pass
         # Check proxy env vars
-        for var in ["HTTP_PROXY", "HTTPS_PROXY", "http_proxy", "https_proxy", "NO_PROXY", "no_proxy"]:
+        for var in ["HTTP_PROXY", "HTTPS_PROXY", "http_proxy", "https_proxy", "NO_PROXY", "no_proxy",
+                    "PIP_INDEX_URL", "PIP_PYPI_URL", "UV_INDEX_URL", "UV_DEFAULT_INDEX"]:
             val = os.environ.get(var)
             if val:
                 print(f"DEBUG: {var}={val}")
