@@ -256,32 +256,48 @@ def install_python_deps(python_exe, external_uv_executable, uv_cache_dir=None):
     
     # Install uv into penv if not available
     if not uv_in_penv_available:
+        print(f"DEBUG: uv not found in penv, attempting install")
+        print(f"DEBUG: python_exe={python_exe}")
+        print(f"DEBUG: external_uv_executable={external_uv_executable}")
         if external_uv_executable:
             # Try external uv first to install uv into the penv
             try:
-                subprocess.check_call(
-                    [external_uv_executable, "pip", "install", "uv>=0.1.0", f"--python={python_exe}", "--quiet"],
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.STDOUT,
+                cmd = [external_uv_executable, "pip", "install", "uv>=0.1.0", f"--python={python_exe}", "--quiet"]
+                print(f"DEBUG: Running: {' '.join(cmd)}")
+                result = subprocess.run(
+                    cmd,
+                    capture_output=True,
+                    text=True,
                     timeout=300,
                     env=uv_env
                 )
-                uv_in_penv_available = True
-            except Exception:
-                print("Warning: uv installation via external uv failed, falling back to pip")
+                if result.returncode == 0:
+                    uv_in_penv_available = True
+                    print("DEBUG: uv installed via external uv")
+                else:
+                    print(f"Warning: uv installation via external uv failed (exit code {result.returncode})")
+                    print(f"DEBUG: stdout: {result.stdout}")
+                    print(f"DEBUG: stderr: {result.stderr}")
+            except Exception as e:
+                print(f"Warning: uv installation via external uv failed: {e}")
 
         if not uv_in_penv_available:
             # Fallback to pip to install uv into penv
             try:
-                subprocess.check_call(
-                    [python_exe, "-m", "pip", "install", "uv>=0.1.0", "--quiet"],
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.STDOUT,
+                cmd = [python_exe, "-m", "pip", "install", "uv>=0.1.0", "--quiet", "--no-cache-dir"]
+                print(f"DEBUG: Running: {' '.join(cmd)}")
+                result = subprocess.run(
+                    cmd,
+                    capture_output=True,
+                    text=True,
                     timeout=300
                 )
-            except subprocess.CalledProcessError as e:
-                print(f"Error: uv installation via pip failed with exit code {e.returncode}")
-                return False
+                if result.returncode != 0:
+                    print(f"Error: uv installation via pip failed with exit code {result.returncode}")
+                    print(f"DEBUG: stdout: {result.stdout}")
+                    print(f"DEBUG: stderr: {result.stderr}")
+                    return False
+                print("DEBUG: uv installed via pip")
             except subprocess.TimeoutExpired:
                 print("Error: uv installation via pip timed out")
                 return False
@@ -335,8 +351,10 @@ def install_python_deps(python_exe, external_uv_executable, uv_cache_dir=None):
         return result
 
     installed_packages = _get_installed_uv_packages()
+    print(f"DEBUG: Installed packages: {installed_packages}")
     packages_to_install = list(get_packages_to_install(python_deps, installed_packages))
-    
+    print(f"DEBUG: Packages to install: {packages_to_install}")
+
     if packages_to_install:
         packages_list = []
         for p in packages_to_install:
@@ -345,25 +363,27 @@ def install_python_deps(python_exe, external_uv_executable, uv_cache_dir=None):
                 packages_list.append(spec)
             else:
                 packages_list.append(f"{p}{spec}")
-        
+
         cmd = [
             penv_uv_executable, "pip", "install",
             f"--python={python_exe}",
             "--quiet", "--upgrade"
         ] + packages_list
-        
+
+        print(f"DEBUG: Running: {' '.join(cmd)}")
         try:
-            subprocess.check_call(
+            result = subprocess.run(
                 cmd,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.STDOUT,
+                capture_output=True,
+                text=True,
                 timeout=300,
                 env=uv_env
             )
-                
-        except subprocess.CalledProcessError as e:
-            print(f"Error: Failed to install Python dependencies (exit code: {e.returncode})")
-            return False
+            if result.returncode != 0:
+                print(f"Error: Failed to install Python dependencies (exit code: {result.returncode})")
+                print(f"DEBUG: stdout: {result.stdout}")
+                print(f"DEBUG: stderr: {result.stderr}")
+                return False
         except subprocess.TimeoutExpired:
             print("Error: Python dependencies installation timed out")
             return False
