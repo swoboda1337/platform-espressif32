@@ -258,6 +258,43 @@ def install_python_deps(python_exe, external_uv_executable, uv_cache_dir=None):
         print(f"DEBUG: uv not found in penv, attempting install")
         print(f"DEBUG: python_exe={python_exe}")
         print(f"DEBUG: external_uv_executable={external_uv_executable}")
+
+        # Network diagnostics
+        import socket
+        import time as _time
+        try:
+            addrs = socket.getaddrinfo("files.pythonhosted.org", 443, socket.AF_UNSPEC, socket.SOCK_STREAM)
+            print(f"DEBUG: DNS files.pythonhosted.org -> {[a[4][0] for a in addrs]}")
+        except Exception as e:
+            print(f"DEBUG: DNS resolution failed: {e}")
+        try:
+            addrs = socket.getaddrinfo("github.com", 443, socket.AF_UNSPEC, socket.SOCK_STREAM)
+            print(f"DEBUG: DNS github.com -> {[a[4][0] for a in addrs]}")
+        except Exception as e:
+            print(f"DEBUG: DNS github.com failed: {e}")
+        # Test TCP connect + small HTTPS download
+        try:
+            import urllib.request
+            start = _time.monotonic()
+            req = urllib.request.urlopen("https://files.pythonhosted.org/", timeout=10)
+            elapsed = _time.monotonic() - start
+            print(f"DEBUG: HTTPS connect to files.pythonhosted.org: {elapsed:.1f}s, status={req.status}")
+            req.close()
+        except Exception as e:
+            print(f"DEBUG: HTTPS connect to files.pythonhosted.org failed: {e}")
+        # Check network interface MTU
+        try:
+            result = subprocess.run(["ip", "link", "show"], capture_output=True, text=True, timeout=5)
+            for line in result.stdout.splitlines():
+                if "mtu" in line.lower():
+                    print(f"DEBUG: {line.strip()}")
+        except Exception:
+            pass
+        # Check proxy env vars
+        for var in ["HTTP_PROXY", "HTTPS_PROXY", "http_proxy", "https_proxy", "NO_PROXY", "no_proxy"]:
+            val = os.environ.get(var)
+            if val:
+                print(f"DEBUG: {var}={val}")
         if external_uv_executable:
             # Try external uv first to install uv into the penv
             try:
