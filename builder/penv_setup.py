@@ -277,6 +277,12 @@ def install_python_deps(python_exe, external_uv_executable, uv_cache_dir=None):
                     print(f"Warning: uv installation via external uv failed (exit code {result.returncode})")
                     print(f"DEBUG: stdout: {result.stdout}")
                     print(f"DEBUG: stderr: {result.stderr}")
+            except subprocess.TimeoutExpired as e:
+                print(f"Warning: uv installation via external uv timed out after {e.timeout}s")
+                if e.stdout:
+                    print(f"DEBUG: stdout: {e.stdout}")
+                if e.stderr:
+                    print(f"DEBUG: stderr: {e.stderr}")
             except Exception as e:
                 print(f"Warning: uv installation via external uv failed: {e}")
 
@@ -297,8 +303,12 @@ def install_python_deps(python_exe, external_uv_executable, uv_cache_dir=None):
                     print(f"DEBUG: stderr: {result.stderr}")
                     return False
                 print("DEBUG: uv installed via pip")
-            except subprocess.TimeoutExpired:
+            except subprocess.TimeoutExpired as e:
                 print("Error: uv installation via pip timed out")
+                if e.stdout:
+                    print(f"DEBUG: stdout: {e.stdout}")
+                if e.stderr:
+                    print(f"DEBUG: stderr: {e.stderr}")
                 return False
             except FileNotFoundError:
                 print("Error: Python executable not found")
