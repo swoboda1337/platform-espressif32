@@ -288,6 +288,14 @@ def install_python_deps(python_exe, external_uv_executable, uv_cache_dir=None):
 
         if not uv_in_penv_available:
             # Fallback to pip to install uv into penv
+            # uv-created venvs don't include pip, so ensure it's available first
+            try:
+                subprocess.run(
+                    [python_exe, "-m", "ensurepip", "--default-pip"],
+                    capture_output=True, timeout=60
+                )
+            except Exception:
+                pass  # ensurepip may not be available, pip install will fail below
             try:
                 cmd = [python_exe, "-m", "pip", "install", "uv>=0.1.0", "--quiet", "--no-cache-dir"]
                 print(f"DEBUG: Running: {' '.join(cmd)}")
