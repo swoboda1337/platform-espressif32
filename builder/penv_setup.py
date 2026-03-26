@@ -363,6 +363,20 @@ def install_python_deps(python_exe, external_uv_executable, uv_cache_dir=None):
                 print(f"Error installing uv package manager via pip: {e}")
                 return False
 
+        if not uv_in_penv_available and external_uv_executable:
+            # Final fallback: copy the system uv binary into the penv
+            try:
+                import shutil
+                ext_path = shutil.which(external_uv_executable)
+                if ext_path:
+                    shutil.copy2(ext_path, penv_uv_executable)
+                    os.chmod(penv_uv_executable, 0o755)
+                    uv_in_penv_available = True
+                    print(f"DEBUG: Copied system uv from {ext_path} to {penv_uv_executable}")
+            except Exception as e:
+                print(f"Error: Failed to copy system uv to penv: {e}")
+                return False
+
     
     def _get_installed_uv_packages():
         """
