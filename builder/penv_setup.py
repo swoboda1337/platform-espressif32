@@ -344,24 +344,22 @@ def install_python_deps(python_exe, external_uv_executable, uv_cache_dir=None):
                     timeout=300
                 )
                 if result.returncode != 0:
-                    print(f"Error: uv installation via pip failed with exit code {result.returncode}")
+                    print(f"Warning: uv installation via pip failed with exit code {result.returncode}")
                     print(f"DEBUG: stdout: {result.stdout}")
                     print(f"DEBUG: stderr: {result.stderr}")
-                    return False
-                print("DEBUG: uv installed via pip")
+                else:
+                    uv_in_penv_available = True
+                    print("DEBUG: uv installed via pip")
             except subprocess.TimeoutExpired as e:
-                print("Error: uv installation via pip timed out")
+                print("Warning: uv installation via pip timed out")
                 if e.stdout:
                     print(f"DEBUG: stdout: {e.stdout}")
                 if e.stderr:
                     print(f"DEBUG: stderr: {e.stderr}")
-                return False
             except FileNotFoundError:
-                print("Error: Python executable not found")
-                return False
+                print("Warning: Python executable not found for pip fallback")
             except Exception as e:
-                print(f"Error installing uv package manager via pip: {e}")
-                return False
+                print(f"Warning: uv installation via pip failed: {e}")
 
         if not uv_in_penv_available and external_uv_executable:
             # Final fallback: copy the system uv binary into the penv
