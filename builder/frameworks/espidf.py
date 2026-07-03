@@ -2856,6 +2856,17 @@ env.Prepend(
     ],
 )
 
+# ESP-IDF's own link command wraps all component archives in a single
+# -Wl,--start-group so ordering between them does not matter. Mirror that
+# here, otherwise single-pass resolution breaks on cross-archive references
+# (e.g. mbedtls 4.1 in IDF 6.0.2: libtfpsacrypto.a needs threading/platform
+# symbols from archives listed earlier on the line).
+env.Replace(
+    LINKCOM=env.get("LINKCOM", "").replace(
+        "$_LIBFLAGS", "-Wl,--start-group $_LIBFLAGS -Wl,--end-group"
+    )
+)
+
 #
 # Propagate Arduino defines to the main build environment
 #
