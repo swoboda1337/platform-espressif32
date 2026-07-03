@@ -1973,7 +1973,10 @@ def build_bootloader(sdk_config):
     # Bootloader preprocessing configuration
     bootloader_config_dir = str(Path(BUILD_DIR) / "bootloader" / "config")
     bootloader_extra_includes = [
-        str(Path(FRAMEWORK_DIR) / "components" / "bootloader" / "subproject" / "main" / "ld" / idf_variant)
+        str(Path(FRAMEWORK_DIR) / "components" / "bootloader" / "subproject" / "main" / "ld" / idf_variant),
+        # IDF 6.0.2+ bootloader.sections.ld.in includes bootloader.sections.common.ld
+        # from the parent ld directory
+        str(Path(FRAMEWORK_DIR) / "components" / "bootloader" / "subproject" / "main" / "ld"),
     ]
 
     i = 0
