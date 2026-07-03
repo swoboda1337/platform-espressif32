@@ -1882,28 +1882,36 @@ def find_lib_deps(components_map, elf_config, link_args, ignore_components=None)
     ignore_components = ignore_components or []
     ignore_set = set(ignore_components)
     result = []
-    for d in elf_config.get("dependencies", []):
-        comp = components_map.get(d["id"])
-        if not comp:
-            continue
-        comp_name = comp["config"]["name"]
-        if comp_name in ignore_set:
-            continue
+    included_ids = set()
+
+    def _add_with_deps(comp_id):
+        comp = components_map.get(comp_id)
+        if not comp or comp_id in included_ids:
+            return
+        if comp["config"]["name"] in ignore_set:
+            return
+        included_ids.add(comp_id)
         result.append(comp["lib"])
+        # Static libraries pull in their own link dependencies, but the ELF
+        # link fragments in the CMake code model do not always list them
+        # (e.g. the mbedtls 4.x builtin/platform/everest/p256-m libraries
+        # that tfpsacrypto depends on since IDF 6.0.2).
+        for dep in comp["config"].get("dependencies", []):
+            _add_with_deps(dep["id"])
+
+    for d in elf_config.get("dependencies", []):
+        _add_with_deps(d["id"])
 
     implicit_lib_deps = link_args.get("__LIB_DEPS", [])
-    for component in components_map.values():
+    for comp_id, component in components_map.items():
         component_config = component["config"]
         if (
             component_config["type"] not in ("STATIC_LIBRARY", "OBJECT_LIBRARY")
             or component_config["name"] in ignore_set
         ):
             continue
-        if (
-            component_config["nameOnDisk"] in implicit_lib_deps
-            and component["lib"] not in result
-        ):
-            result.append(component["lib"])
+        if component_config["nameOnDisk"] in implicit_lib_deps:
+            _add_with_deps(comp_id)
 
     return result
 
