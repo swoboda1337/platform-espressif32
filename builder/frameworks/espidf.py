@@ -2358,8 +2358,10 @@ def _get_python_deps():
         # https://github.com/platformio/platform-espressif32/issues/635
         "cryptography": "~=44.0.0",
         "pyparsing": ">=3.1.0,<4",
-        "idf-component-manager": "~=2.4.8",
-        "esp-idf-kconfig": "~=3.7.0"
+        # IDF 6.x pins from espidf.constraints.v6.1.txt; component manager 3.x
+        # is required for the interface_version 5 used by IDF 6.1
+        "idf-component-manager": "~=3.0.0",
+        "esp-idf-kconfig": ">=3.11.1,<4.0.0"
     }
 
     if IS_WINDOWS:
